@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { MapPin, Layers, Navigation, Plus, Filter, Search, ArrowUp } from 'lucide-react';
+import { MapPin, Layers, Navigation, Plus, Filter, Search, ArrowUp, ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -7,48 +8,61 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import ItineraryPanel from '@/components/ItineraryPanel';
 import LoadingSkeleton from '@/components/LoadingSkeleton';
 import { useVoya } from '@/contexts/VoyaContext';
 
-// Mock map data
-const mockAttractions = [
-  { id: '1', name: 'Eiffel Tower', coordinates: [2.2945, 48.8584] as [number, number], rating: 4.8 },
-  { id: '2', name: 'Louvre Museum', coordinates: [2.3376, 48.8606] as [number, number], rating: 4.7 },
-  { id: '3', name: 'Arc de Triomphe', coordinates: [2.2950, 48.8738] as [number, number], rating: 4.6 },
+// Mock data with enhanced properties
+const mockStays = [
+  { id: '1', name: 'Hotel Plaza Athénée', coordinates: [2.3014, 48.8667] as [number, number], rating: 4.9, price: 450, type: 'Hotel' },
+  { id: '2', name: 'Le Meurice', coordinates: [2.3281, 48.8651] as [number, number], rating: 4.8, price: 380, type: 'Hotel' },
+  { id: '3', name: 'Modern Apartment', coordinates: [2.3006, 48.8689] as [number, number], rating: 4.7, price: 120, type: 'Apartment' },
+  { id: '4', name: 'Cozy B&B', coordinates: [2.2950, 48.8738] as [number, number], rating: 4.5, price: 90, type: 'B&B' },
 ];
 
-const mockStays = [
-  { id: '1', name: 'Hotel Plaza Athénée', coordinates: [2.3014, 48.8667] as [number, number], rating: 4.9, price: 450 },
-  { id: '2', name: 'Le Meurice', coordinates: [2.3281, 48.8651] as [number, number], rating: 4.8, price: 380 },
-  { id: '3', name: 'Hotel George V', coordinates: [2.3006, 48.8689] as [number, number], rating: 4.9, price: 520 },
+const mockAttractions = [
+  { id: '1', name: 'Eiffel Tower', coordinates: [2.2945, 48.8584] as [number, number], rating: 4.8, distance: '0.8 km', duration: '3 min' },
+  { id: '2', name: 'Louvre Museum', coordinates: [2.3376, 48.8606] as [number, number], rating: 4.7, distance: '1.2 km', duration: '5 min' },
+  { id: '3', name: 'Arc de Triomphe', coordinates: [2.2950, 48.8738] as [number, number], rating: 4.6, distance: '2.1 km', duration: '8 min' },
+  { id: '4', name: 'Notre-Dame', coordinates: [2.3499, 48.8530] as [number, number], rating: 4.8, distance: '1.8 km', duration: '7 min' },
+  { id: '5', name: 'Sacré-Cœur', coordinates: [2.3431, 48.8867] as [number, number], rating: 4.7, distance: '3.2 km', duration: '12 min' },
 ];
 
 const MapDashboard = () => {
   const { 
-    selectedLayer, 
-    setSelectedLayer, 
     isItineraryOpen, 
     setIsItineraryOpen,
     addToItinerary,
     searchQuery 
   } = useVoya();
   
+  const { toast } = useToast();
+  
+  // View state
+  const [viewMode, setViewMode] = useState<'stays' | 'drill-in'>('stays');
+  const [selectedStay, setSelectedStay] = useState<any>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSearchArea, setShowSearchArea] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showRoute, setShowRoute] = useState(false);
+  
+  // Filter state
   const [filters, setFilters] = useState({
-    minRating: [4],
     priceRange: [0, 1000],
-    amenities: {
-      wifi: false,
-      parking: false,
-      pool: false,
-    }
+    minRating: [4],
+    accommodationType: {
+      Hotel: false,
+      'B&B': false,
+      Apartment: false,
+      Hostel: false,
+    },
+    distanceRadius: 5, // km
   });
+  
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   useEffect(() => {
     // Simulate loading
@@ -69,33 +83,139 @@ const MapDashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const currentData = selectedLayer === 'attractions' ? mockAttractions : mockStays;
+  // Filter stays based on active filters
+  const filteredStays = mockStays.filter(stay => {
+    const priceInRange = stay.price >= filters.priceRange[0] && stay.price <= filters.priceRange[1];
+    const ratingMatch = stay.rating >= filters.minRating[0];
+    const typeMatch = !Object.values(filters.accommodationType).some(Boolean) || 
+                     filters.accommodationType[stay.type as keyof typeof filters.accommodationType];
+    
+    return priceInRange && ratingMatch && typeMatch;
+  });
+
+  const handleStayClick = (stay: any) => {
+    if (viewMode === 'stays') {
+      setSelectedStay(stay);
+      setViewMode('drill-in');
+      setShowRoute(true);
+      
+      // Simulate loading attractions
+      toast({
+        title: "Loading nearby attractions...",
+        description: `Finding things to do near ${stay.name}`,
+      });
+    }
+  };
+
+  const handleBackToStays = () => {
+    setViewMode('stays');
+    setSelectedStay(null);
+    setShowRoute(false);
+  };
 
   const handleAddToItinerary = (item: any) => {
     addToItinerary({
       id: item.id,
       name: item.name,
-      type: selectedLayer === 'attractions' ? 'attraction' : 'stay',
+      type: viewMode === 'drill-in' ? 'attraction' : 'stay',
       coordinates: item.coordinates,
+    });
+    
+    toast({
+      title: "Added to itinerary",
+      description: `${item.name} has been added to your trip`,
     });
   };
 
   const handleCurrentLocation = () => {
     if (userLocation) {
       console.log('Centering map to user location:', userLocation);
+      toast({
+        title: "Current location",
+        description: "Map centered to your location",
+      });
     }
   };
 
   const handleSearchArea = () => {
     setShowSearchArea(false);
-    // Re-run search in current map bounds
     console.log('Searching in current area');
+    toast({
+      title: "Searching area",
+      description: "Looking for accommodations in this area...",
+    });
   };
 
   const handleApplyFilters = () => {
-    console.log('Apply filters:', filters);
+    const newActiveFilters: string[] = [];
+    
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 1000) {
+      newActiveFilters.push(`€${filters.priceRange[0]}-€${filters.priceRange[1]}`);
+    }
+    
+    if (filters.minRating[0] > 4) {
+      newActiveFilters.push(`${filters.minRating[0]}+ stars`);
+    }
+    
+    const selectedTypes = Object.entries(filters.accommodationType)
+      .filter(([_, selected]) => selected)
+      .map(([type, _]) => type);
+    
+    if (selectedTypes.length > 0) {
+      newActiveFilters.push(...selectedTypes);
+    }
+    
+    if (filters.distanceRadius < 10) {
+      newActiveFilters.push(`Within ${filters.distanceRadius}km`);
+    }
+    
+    setActiveFilters(newActiveFilters);
     setIsFilterOpen(false);
+    
+    toast({
+      title: "Filters applied",
+      description: `Found ${filteredStays.length} accommodations`,
+    });
   };
+
+  const handleResetFilters = () => {
+    setFilters({
+      priceRange: [0, 1000],
+      minRating: [4],
+      accommodationType: {
+        Hotel: false,
+        'B&B': false,
+        Apartment: false,
+        Hostel: false,
+      },
+      distanceRadius: 5,
+    });
+    setActiveFilters([]);
+  };
+
+  const removeFilter = (filterToRemove: string) => {
+    setActiveFilters(prev => prev.filter(f => f !== filterToRemove));
+    // Reset corresponding filter
+    if (filterToRemove.includes('€')) {
+      setFilters(prev => ({ ...prev, priceRange: [0, 1000] }));
+    } else if (filterToRemove.includes('stars')) {
+      setFilters(prev => ({ ...prev, minRating: [4] }));
+    } else if (filterToRemove.includes('km')) {
+      setFilters(prev => ({ ...prev, distanceRadius: 5 }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        accommodationType: {
+          ...prev.accommodationType,
+          [filterToRemove]: false
+        }
+      }));
+    }
+  };
+
+  const currentData = viewMode === 'stays' ? filteredStays : mockAttractions;
+  const routeDistance = viewMode === 'drill-in' && selectedStay ? '8.2 km' : '';
+  const routeDuration = viewMode === 'drill-in' && selectedStay ? '32 min' : '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -112,19 +232,47 @@ const MapDashboard = () => {
             }}
           />
           
+          {/* Route Polyline */}
+          {showRoute && selectedStay && (
+            <svg className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
+              <polyline
+                points="300,200 350,150 400,180 320,250 380,300 300,200"
+                fill="none"
+                stroke="#008F7A"
+                strokeWidth="3"
+                strokeDasharray="5,5"
+                className="animate-pulse"
+              />
+            </svg>
+          )}
+          
           {/* Map Content */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="w-32 h-32 bg-travel-gradient rounded-full mx-auto mb-4 flex items-center justify-center shadow-xl">
                 <MapPin className="h-16 w-16 text-white" />
               </div>
-              <h2 className="text-3xl font-bold text-gray-700 mb-2">Interactive Map</h2>
+              <h2 className="text-3xl font-bold text-gray-700 mb-2">
+                {viewMode === 'stays' ? 'Find Your Stay' : `Explore around ${selectedStay?.name}`}
+              </h2>
               <p className="text-gray-600 mb-4 text-lg">
-                {searchQuery ? `Showing results for "${searchQuery}"` : 'Search for a destination to see the map'}
+                {searchQuery ? `Showing results for "${searchQuery}"` : 
+                 viewMode === 'stays' ? 'Select an accommodation to see nearby attractions' :
+                 'Plan your perfect itinerary'}
               </p>
               <Badge variant="outline" className="mb-4 text-lg px-4 py-2">
-                {currentData.length} {selectedLayer} found
+                {currentData.length} {viewMode === 'stays' ? 'accommodations' : 'attractions'} found
               </Badge>
+              {viewMode === 'drill-in' && selectedStay && (
+                <div className="flex gap-4 justify-center">
+                  <Badge className="bg-green-100 text-green-800">
+                    Total: {routeDistance}
+                  </Badge>
+                  <Badge className="bg-blue-100 text-blue-800">
+                    Duration: {routeDuration}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
           
@@ -145,51 +293,81 @@ const MapDashboard = () => {
               ))}
             </>
           ) : (
-            currentData.map((item, index) => (
-              <Tooltip key={item.id}>
-                <TooltipTrigger asChild>
-                  <div
-                    className="absolute cursor-pointer transform hover:scale-110 transition-transform"
-                    style={{
-                      left: `${20 + index * 15}%`,
-                      top: `${30 + index * 10}%`,
-                    }}
-                  >
-                    <div className={`w-8 h-8 ${selectedLayer === 'attractions' ? 'bg-blue-500' : 'bg-green-500'} rounded-full border-4 border-white shadow-lg flex items-center justify-center relative`}>
-                      <MapPin className="h-4 w-4 text-white" />
-                      <Button
-                        size="sm"
-                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-orange-500 hover:bg-orange-600 p-0"
-                        onClick={() => handleAddToItinerary(item)}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
+            currentData.map((item, index) => {
+              const isSelected = selectedStay && item.id === selectedStay.id;
+              const markerSize = isSelected ? 'w-10 h-10' : 'w-8 h-8';
+              const markerColor = viewMode === 'stays' ? 'bg-green-500' : 'bg-blue-500';
+              const ringStyle = isSelected ? 'ring-4 ring-green-300 ring-opacity-50' : '';
+              
+              return (
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={`absolute cursor-pointer transform hover:scale-110 transition-all ${ringStyle}`}
+                      style={{
+                        left: `${20 + index * 15}%`,
+                        top: `${30 + index * 10}%`,
+                      }}
+                      onClick={() => viewMode === 'stays' && handleStayClick(item)}
+                    >
+                      <div className={`${markerSize} ${markerColor} rounded-full border-4 border-white shadow-lg flex items-center justify-center relative`}>
+                        <MapPin className="h-4 w-4 text-white" />
+                        <Button
+                          size="sm"
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-orange-500 hover:bg-orange-600 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToItinerary(item);
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-xs">Click + to add to itinerary</p>
-                </TooltipContent>
-              </Tooltip>
-            ))
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-xs">
+                      {viewMode === 'stays' ? 'Click to explore area' : 'Click + to add to itinerary'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })
           )}
         </div>
 
-        {/* Mini Legend (bottom-left) */}
-        <div className="absolute bottom-20 left-4 z-10 bg-white rounded-lg shadow-lg p-3">
-          <h4 className="text-xs font-semibold mb-2">Legend</h4>
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2 text-xs">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span>Attractions</span>
-            </div>
-            <div className="flex items-center space-x-2 text-xs">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span>Stays</span>
-            </div>
+        {/* Active Filters */}
+        {activeFilters.length > 0 && (
+          <div className="absolute top-8 left-4 z-10 flex flex-wrap gap-2 max-w-md">
+            {activeFilters.map((filter, index) => (
+              <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                {filter}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => removeFilter(filter)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
           </div>
-        </div>
+        )}
+
+        {/* Back to Stays Button */}
+        {viewMode === 'drill-in' && (
+          <div className="absolute top-8 left-4 z-20">
+            <Button 
+              onClick={handleBackToStays}
+              className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-lg"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to stays
+            </Button>
+          </div>
+        )}
 
         {/* Search This Area Button */}
         {showSearchArea && (
@@ -204,47 +382,8 @@ const MapDashboard = () => {
           </div>
         )}
 
-        {/* Floating Controls (top-right) - Moved down to avoid header overlap */}
+        {/* Floating Controls (top-right) */}
         <div className="absolute top-8 right-4 z-10 space-y-2">
-          {/* Layer Toggle */}
-          <div className="bg-white rounded-lg shadow-lg p-2">
-            <div className="flex space-x-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={selectedLayer === 'attractions' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSelectedLayer('attractions')}
-                    className="text-xs"
-                  >
-                    <Layers className="h-3 w-3 mr-1" />
-                    Attractions
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show attractions</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={selectedLayer === 'stays' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSelectedLayer('stays')}
-                    className="text-xs"
-                  >
-                    <MapPin className="h-3 w-3 mr-1" />
-                    Stays
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show accommodations</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
           {/* Filter Panel */}
           <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>
@@ -261,9 +400,27 @@ const MapDashboard = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-80 bg-white border-l">
               <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
+                <SheetTitle>Filter Accommodations</SheetTitle>
               </SheetHeader>
               <div className="py-6 space-y-6">
+                <div>
+                  <Label className="text-sm font-medium">Price Range (per night)</Label>
+                  <div className="mt-2">
+                    <Slider
+                      value={filters.priceRange}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
+                      max={1000}
+                      min={0}
+                      step={50}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-gray-500 mt-1">
+                      <span>€{filters.priceRange[0]}</span>
+                      <span>€{filters.priceRange[1]}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label className="text-sm font-medium">Minimum Rating</Label>
                   <div className="mt-2">
@@ -277,52 +434,51 @@ const MapDashboard = () => {
                     />
                     <div className="flex justify-between text-sm text-gray-500 mt-1">
                       <span>1.0</span>
-                      <span>{filters.minRating[0]}+</span>
+                      <span>{filters.minRating[0]}+ stars</span>
                       <span>5.0</span>
                     </div>
                   </div>
                 </div>
 
-                {selectedLayer === 'stays' && (
-                  <div>
-                    <Label className="text-sm font-medium">Price Range (per night)</Label>
-                    <div className="mt-2">
-                      <Slider
-                        value={filters.priceRange}
-                        onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
-                        max={1000}
-                        min={0}
-                        step={50}
-                        className="w-full"
-                      />
-                      <div className="flex justify-between text-sm text-gray-500 mt-1">
-                        <span>${filters.priceRange[0]}</span>
-                        <span>${filters.priceRange[1]}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 <div>
-                  <Label className="text-sm font-medium mb-3 block">Amenities</Label>
+                  <Label className="text-sm font-medium mb-3 block">Accommodation Type</Label>
                   <div className="space-y-3">
-                    {Object.entries(filters.amenities).map(([key, checked]) => (
-                      <div key={key} className="flex items-center space-x-2">
+                    {Object.entries(filters.accommodationType).map(([type, checked]) => (
+                      <div key={type} className="flex items-center space-x-2">
                         <Checkbox 
-                          id={key}
+                          id={type}
                           checked={checked}
                           onCheckedChange={(checked) => 
                             setFilters(prev => ({
                               ...prev,
-                              amenities: { ...prev.amenities, [key]: checked as boolean }
+                              accommodationType: { ...prev.accommodationType, [type]: checked as boolean }
                             }))
                           }
                         />
-                        <Label htmlFor={key} className="text-sm capitalize">
-                          {key === 'wifi' ? 'Free WiFi' : key}
+                        <Label htmlFor={type} className="text-sm">
+                          {type}
                         </Label>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Distance Radius</Label>
+                  <div className="mt-2">
+                    <Slider
+                      value={[filters.distanceRadius]}
+                      onValueChange={(value) => setFilters(prev => ({ ...prev, distanceRadius: value[0] }))}
+                      max={10}
+                      min={1}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-gray-500 mt-1">
+                      <span>1 km</span>
+                      <span>{filters.distanceRadius} km</span>
+                      <span>10 km</span>
+                    </div>
                   </div>
                 </div>
 
@@ -333,15 +489,9 @@ const MapDashboard = () => {
                   <Button 
                     variant="outline" 
                     className="w-full" 
-                    onClick={() => {
-                      setFilters({
-                        minRating: [4],
-                        priceRange: [0, 1000],
-                        amenities: { wifi: false, parking: false, pool: false }
-                      });
-                    }}
+                    onClick={handleResetFilters}
                   >
-                    Reset Filters
+                    Clear All
                   </Button>
                 </div>
               </div>
@@ -366,6 +516,97 @@ const MapDashboard = () => {
           </Tooltip>
         </div>
 
+        {/* Bottom Info Card for Drill-in View */}
+        {viewMode === 'drill-in' && selectedStay && (
+          <div className="absolute bottom-4 left-4 right-4 z-10 bg-white rounded-lg shadow-xl p-4 max-h-60 overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-semibold">{selectedStay.name}</h3>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="text-yellow-500">★</span>
+                  <span>{selectedStay.rating}</span>
+                  <span>•</span>
+                  <span>€{selectedStay.price}/night</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium">{routeDistance}</div>
+                <div className="text-xs text-gray-600">{routeDuration} total</div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Nearby Attractions</h4>
+              {mockAttractions.slice(0, 5).map((attraction, index) => (
+                <div key={attraction.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{attraction.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {attraction.distance} • {attraction.duration}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAddToItinerary(attraction)}
+                    className="text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stay Cards for Default View */}
+        {viewMode === 'stays' && (
+          <div className="absolute bottom-4 left-4 z-10 space-y-2 max-h-60 overflow-y-auto">
+            {isLoading ? (
+              <LoadingSkeleton type="card" count={2} />
+            ) : (
+              filteredStays.slice(0, 3).map((stay) => (
+                <div 
+                  key={stay.id} 
+                  className="bg-white rounded-lg shadow-lg p-3 w-64 hover:shadow-xl transition-shadow cursor-pointer"
+                  onClick={() => handleStayClick(stay)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">{stay.name}</h3>
+                      <p className="text-xs text-gray-500">{stay.type}</p>
+                      <div className="flex items-center space-x-1 mt-1">
+                        <span className="text-xs text-yellow-500">★</span>
+                        <span className="text-xs font-medium">{stay.rating}</span>
+                        <span className="text-xs text-gray-500 ml-2">€{stay.price}/night</span>
+                      </div>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToItinerary(stay);
+                          }}
+                          className="text-xs ml-2"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Add to itinerary</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
         {/* Floating Action Button */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -380,66 +621,6 @@ const MapDashboard = () => {
             <p>Open itinerary</p>
           </TooltipContent>
         </Tooltip>
-
-        {/* Back to Top FAB */}
-        {showBackToTop && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                className="fixed bottom-24 right-6 z-20 w-12 h-12 rounded-full bg-white shadow-lg"
-                onClick={() => setShowBackToTop(false)}
-              >
-                <ArrowUp className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Back to top</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Mock POI Cards */}
-        <div className="absolute bottom-4 left-4 z-10 space-y-2 max-h-60 overflow-y-auto">
-          {isLoading ? (
-            <LoadingSkeleton type="card" count={2} />
-          ) : (
-            currentData.slice(0, 3).map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-lg p-3 w-64 hover:shadow-xl transition-shadow">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">{item.name}</h3>
-                    <p className="text-xs text-gray-500">
-                      {selectedLayer === 'attractions' ? 'Tourist Attraction' : 'Accommodation'}
-                    </p>
-                    <div className="flex items-center space-x-1 mt-1">
-                      <span className="text-xs text-yellow-500">★</span>
-                      <span className="text-xs font-medium">{(item as any).rating}</span>
-                      {selectedLayer === 'stays' && (
-                        <span className="text-xs text-gray-500 ml-2">${(item as any).price}/night</span>
-                      )}
-                    </div>
-                  </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAddToItinerary(item)}
-                        className="text-xs ml-2"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Add to itinerary</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {/* Itinerary Panel */}

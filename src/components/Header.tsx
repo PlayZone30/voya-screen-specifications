@@ -1,9 +1,11 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, Menu, X } from 'lucide-react';
+import { Search, User, Menu, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useVoya } from '@/contexts/VoyaContext';
 
 interface HeaderProps {
@@ -57,16 +59,46 @@ const Header = ({ variant = 'landing' }: HeaderProps) => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/profile">
-              <Button variant="outline" size="sm" className={
-                variant === 'landing' 
-                  ? 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white' 
-                  : 'text-gray-700 hover:text-gray-900'
-              }>
-                <User className="h-4 w-4 mr-2" />
-                Profile
-              </Button>
-            </Link>
+            {/* Notification Bell */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`relative ${
+                    variant === 'landing' 
+                      ? 'text-white hover:text-white hover:bg-white/20' 
+                      : 'text-gray-700 hover:text-gray-900'
+                  }`}
+                >
+                  <Bell className="h-4 w-4" />
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center p-0">
+                    2
+                  </Badge>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Notifications</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link to="/profile">
+                  <Button variant="outline" size="sm" className={
+                    variant === 'landing' 
+                      ? 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white' 
+                      : 'text-gray-700 hover:text-gray-900 bg-white border-gray-300'
+                  }>
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View Profile & Settings</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Mobile Menu Button */}
@@ -97,6 +129,11 @@ const Header = ({ variant = 'landing' }: HeaderProps) => {
                   </div>
                 </form>
               )}
+              <Button variant="outline" className="w-full justify-start">
+                <Bell className="h-4 w-4 mr-2" />
+                Notifications
+                <Badge className="ml-auto bg-red-500 text-white">2</Badge>
+              </Button>
               <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
                 <Button variant="outline" className="w-full justify-start">
                   <User className="h-4 w-4 mr-2" />

@@ -96,8 +96,8 @@ const MapDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <Header variant="dashboard" />
       
-      {/* Map Container */}
-      <div className="pt-16 h-screen relative overflow-hidden">
+      {/* Map Container - Fixed padding to account for header */}
+      <div className="pt-20 h-screen relative overflow-hidden">
         {/* Enhanced Map Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
           <div 
@@ -188,7 +188,7 @@ const MapDashboard = () => {
 
         {/* Search This Area Button */}
         {showSearchArea && (
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
             <Button 
               onClick={handleSearchArea}
               className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-lg"
@@ -200,7 +200,7 @@ const MapDashboard = () => {
         )}
 
         {/* Floating Controls (top-right) */}
-        <div className="absolute top-4 right-4 z-10 space-y-2">
+        <div className="absolute top-6 right-4 z-10 space-y-2">
           {/* Layer Toggle */}
           <div className="bg-white rounded-lg shadow-lg p-2">
             <div className="flex space-x-1">
@@ -254,7 +254,7 @@ const MapDashboard = () => {
                 </TooltipContent>
               </Tooltip>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80">
+            <SheetContent side="right" className="w-80 bg-white">
               <SheetHeader>
                 <SheetTitle>Filters</SheetTitle>
               </SheetHeader>
@@ -319,6 +319,12 @@ const MapDashboard = () => {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button className="w-full" onClick={() => console.log('Apply filters:', filters)}>
+                    Apply Filters
+                  </Button>
                 </div>
               </div>
             </SheetContent>

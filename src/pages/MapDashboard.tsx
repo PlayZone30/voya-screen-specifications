@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { MapPin, Layers, Navigation, Plus, Filter, Search, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,7 @@ const MapDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showSearchArea, setShowSearchArea] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
     minRating: [4],
     priceRange: [0, 1000],
@@ -92,12 +92,17 @@ const MapDashboard = () => {
     console.log('Searching in current area');
   };
 
+  const handleApplyFilters = () => {
+    console.log('Apply filters:', filters);
+    setIsFilterOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header variant="dashboard" />
       
       {/* Map Container - Fixed padding to account for header */}
-      <div className="pt-20 h-screen relative overflow-hidden">
+      <div className="pt-24 h-screen relative overflow-hidden">
         {/* Enhanced Map Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
           <div 
@@ -188,7 +193,7 @@ const MapDashboard = () => {
 
         {/* Search This Area Button */}
         {showSearchArea && (
-          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10">
             <Button 
               onClick={handleSearchArea}
               className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 shadow-lg"
@@ -199,8 +204,8 @@ const MapDashboard = () => {
           </div>
         )}
 
-        {/* Floating Controls (top-right) */}
-        <div className="absolute top-6 right-4 z-10 space-y-2">
+        {/* Floating Controls (top-right) - Moved down to avoid header overlap */}
+        <div className="absolute top-8 right-4 z-10 space-y-2">
           {/* Layer Toggle */}
           <div className="bg-white rounded-lg shadow-lg p-2">
             <div className="flex space-x-1">
@@ -241,7 +246,7 @@ const MapDashboard = () => {
           </div>
 
           {/* Filter Panel */}
-          <Sheet>
+          <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -254,7 +259,7 @@ const MapDashboard = () => {
                 </TooltipContent>
               </Tooltip>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 bg-white">
+            <SheetContent side="right" className="w-80 bg-white border-l">
               <SheetHeader>
                 <SheetTitle>Filters</SheetTitle>
               </SheetHeader>
@@ -321,9 +326,22 @@ const MapDashboard = () => {
                   </div>
                 </div>
 
-                <div className="pt-4">
-                  <Button className="w-full" onClick={() => console.log('Apply filters:', filters)}>
+                <div className="pt-4 space-y-2">
+                  <Button className="w-full" onClick={handleApplyFilters}>
                     Apply Filters
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => {
+                      setFilters({
+                        minRating: [4],
+                        priceRange: [0, 1000],
+                        amenities: { wifi: false, parking: false, pool: false }
+                      });
+                    }}
+                  >
+                    Reset Filters
                   </Button>
                 </div>
               </div>

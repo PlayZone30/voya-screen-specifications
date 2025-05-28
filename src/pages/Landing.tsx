@@ -30,8 +30,8 @@ const Landing = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-teal-600">
       <Header variant="landing" />
       
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center">
+      {/* Hero Section - Added proper top padding for header */}
+      <section className="relative min-h-screen flex items-center justify-center pt-16">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{

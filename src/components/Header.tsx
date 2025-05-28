@@ -24,7 +24,7 @@ const Header = ({ variant = 'landing' }: HeaderProps) => {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 ${
-      variant === 'landing' ? 'bg-transparent' : 'bg-white/95 backdrop-blur-md border-b'
+      variant === 'landing' ? 'bg-black/20 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md border-b'
     }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -60,8 +60,8 @@ const Header = ({ variant = 'landing' }: HeaderProps) => {
             <Link to="/profile">
               <Button variant="outline" size="sm" className={
                 variant === 'landing' 
-                  ? 'glass-morphism text-white border-white/30 hover:bg-white/20' 
-                  : ''
+                  ? 'bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white' 
+                  : 'text-gray-700 hover:text-gray-900'
               }>
                 <User className="h-4 w-4 mr-2" />
                 Profile
@@ -73,7 +73,7 @@ const Header = ({ variant = 'landing' }: HeaderProps) => {
           <Button
             variant="ghost"
             size="sm"
-            className={`md:hidden ${variant === 'landing' ? 'text-white' : ''}`}
+            className={`md:hidden ${variant === 'landing' ? 'text-white hover:text-white hover:bg-white/20' : 'text-gray-700 hover:text-gray-900'}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

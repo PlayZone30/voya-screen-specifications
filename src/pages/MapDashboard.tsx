@@ -68,22 +68,49 @@ const MapDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <Header variant="dashboard" />
       
-      {/* Map Container */}
-      <div className="pt-16 relative h-screen">
-        {/* Mock Map Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-32 h-32 bg-travel-gradient rounded-full mx-auto mb-4 flex items-center justify-center">
-              <MapPin className="h-16 w-16 text-white" />
+      {/* Map Container - Fixed height with proper header spacing */}
+      <div className="pt-16 h-screen relative overflow-hidden">
+        {/* Map Background with Grid Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-green-50">
+          {/* Grid pattern overlay */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.1'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+          
+          {/* Mock Map Content */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-32 h-32 bg-travel-gradient rounded-full mx-auto mb-4 flex items-center justify-center shadow-xl">
+                <MapPin className="h-16 w-16 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-700 mb-2">Interactive Map</h2>
+              <p className="text-gray-600 mb-4 text-lg">
+                {searchQuery ? `Showing results for "${searchQuery}"` : 'Search for a destination to see the map'}
+              </p>
+              <Badge variant="outline" className="mb-4 text-lg px-4 py-2">
+                {currentData.length} {selectedLayer} found
+              </Badge>
             </div>
-            <h2 className="text-2xl font-bold text-gray-700 mb-2">Interactive Map</h2>
-            <p className="text-gray-600 mb-4">
-              {searchQuery ? `Showing results for "${searchQuery}"` : 'Search for a destination to see the map'}
-            </p>
-            <Badge variant="outline" className="mb-4">
-              {currentData.length} {selectedLayer} found
-            </Badge>
           </div>
+          
+          {/* Mock Map Markers */}
+          {currentData.map((item, index) => (
+            <div
+              key={item.id}
+              className="absolute"
+              style={{
+                left: `${20 + index * 15}%`,
+                top: `${30 + index * 10}%`,
+              }}
+            >
+              <div className="w-8 h-8 bg-red-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-white" />
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Floating Controls */}
